@@ -124,6 +124,13 @@ class IndexBrowseQuery(MekBaseModel):
     limit: int = Field(default=50, ge=1, le=200)
 
 
+class RecordQuery(MekBaseModel):
+    identifier: str = Field(
+        min_length=1,
+        description="MEK ID such as 05500/05585, or a MEK record URL.",
+    )
+
+
 class SearchResult(MekBaseModel):
     title: str
     authors: list[str] = Field(default_factory=list)
@@ -156,6 +163,29 @@ class IndexBrowseResponse(MekBaseModel):
     total_results: int | None = None
     limit: int
     source_url: str
+
+
+class RecordFile(MekBaseModel):
+    label: str
+    url: str
+    file_type: str | None = None
+
+
+class RecordResponse(MekBaseModel):
+    kind: SearchKind = SearchKind.RECORD
+    title: str | None = None
+    authors: list[str] = Field(default_factory=list)
+    mek_id: str | None = None
+    url: str
+    urn: str | None = None
+    description: str | None = None
+    date: str | None = None
+    topics: list[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
+    files: list[RecordFile] = Field(default_factory=list)
+    related_pages: list[RecordFile] = Field(default_factory=list)
+    cover_url: str | None = None
+    metadata: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class MekPage(MekBaseModel):

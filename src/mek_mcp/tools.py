@@ -12,6 +12,7 @@ from .parsers import (
     parse_advanced_results,
     parse_full_text_results,
     parse_index_browse_results,
+    parse_record,
     parse_simple_results,
 )
 from .schemas import (
@@ -19,6 +20,7 @@ from .schemas import (
     AdvancedSearchQuery,
     FullTextSearchQuery,
     IndexBrowseQuery,
+    RecordQuery,
     SimpleSearchQuery,
 )
 
@@ -126,6 +128,24 @@ def register_tools(
             prefix=query.prefix,
             limit=query.limit,
         )
+        return response.model_dump(mode="json")
+
+    @server.tool(
+        name="mek_get_record",
+        description=(
+            "Fetch and normalize a MEK record page by MEK ID or record URL. "
+            "Returns bibliographic metadata, topics, keywords, description, "
+            "available file formats, related pages, and stable identifiers."
+        ),
+    )
+    def mek_get_record(identifier: str) -> dict[str, Any]:
+        """Fetch and parse a MEK record page."""
+        query = RecordQuery(identifier=identifier)
+
+        with client_factory() as client:
+            page = client.fetch_record(query)
+
+        response = parse_record(page)
         return response.model_dump(mode="json")
 
     @server.tool(

@@ -12,6 +12,8 @@ from .schemas import (
     IndexBrowseResponse,
     IndexEntry,
     MekPage,
+    RecordFile,
+    RecordResponse,
     SearchKind,
     SearchResponse,
     SearchResult,
@@ -103,6 +105,34 @@ def parse_index_browse_results(
     )
 
 
+def parse_record(page: MekPage) -> RecordResponse:
+    root = _parse_html(page.html)
+    metadata = _parse_meta_metadata(root)
+    title = _node_text(root.find_first("h3", "title")) or _first_meta(
+        metadata, "dc.title"
+    )
+    authors = _record_authors(root, metadata)
+    topics = _record_topics(root)
+    url = _record_url(root, page.url)
+
+    return RecordResponse(
+        title=title or None,
+        authors=authors,
+        mek_id=_parse_mek_id(url),
+        url=url,
+        urn=_record_urn(root, metadata),
+        description=_node_text(root.find_first("div", "itemlead")) or None,
+        date=_node_text(root.find_first("div", "reldate"))
+        or _last_meta(metadata, "dc.date"),
+        topics=topics,
+        keywords=_record_keywords(root, metadata),
+        files=_record_files(root),
+        related_pages=_record_related_pages(root),
+        cover_url=_record_cover_url(root, metadata),
+        metadata=metadata,
+    )
+
+
 def _parse_search_results(
     page: MekPage,
     *,
@@ -157,6 +187,124 @@ def _parse_old_hit(hit: _Node) -> SearchResult:
         mek_id=_parse_mek_id(url),
         snippet=snippet,
     )
+
+
+def _parse_meta_metadata(root: _Node) -> dict[str, list[str]]:
+    metadata: dict[str, list[str]] = {}
+    for node in root.find_all("meta"):
+        name = node.attr("name") or node.attr("property")
+        content = node.attr("content")
+        if name and content:
+            metadata.setdefault(name, []).append(_clean_text(content))
+    return metadata
+
+
+def _record_authors(root: _Node, metadata: dict[str, list[str]]) -> list[str]:
+    author_text = _node_text(root.find_first("h4", "author"))
+    authors = _split_authors(author_text)
+    if authors:
+        return authors
+    return metadata.get("dc.creator", [])
+
+
+def _record_topics(root: _Node) -> list[str]:
+    topics: list[str] = []
+    for class_name in ("topic", "subtopic"):
+        text = _node_text(root.find_first("div", class_name))
+        if text:
+            topics.append(text)
+    return topics
+
+
+def _record_keywords(root: _Node, metadata: dict[str, list[str]]) -> list[str]:
+    keywords: list[str] = []
+    keyword_node = root.find_first("div", "keywords")
+    if keyword_node:
+        for link in keyword_node.find_all("a"):
+            keyword = _node_text(link)
+            if keyword:
+                keywords.append(keyword)
+    if keywords:
+        return keywords
+    return metadata.get("dc.subject", [])
+
+
+def _record_files(root: _Node) -> list[RecordFile]:
+    files: list[RecordFile] = []
+    for link in root.find_all("a", "cssfile"):
+        url = _absolute_url(link.attr("href"))
+        if url is None:
+            continue
+        files.append(
+            RecordFile(
+                label=_node_text(link) or link.attr("title") or "file",
+                url=url,
+                file_type=_record_file_type(link),
+            )
+        )
+    return files
+
+
+def _record_file_type(link: _Node) -> str | None:
+    class_names = (link.attr("class") or "").split()
+    for class_name in class_names:
+        if class_name != "cssfile":
+            return class_name
+    title = link.attr("title")
+    if title and "." in title:
+        return title.rsplit(".", 1)[-1].lower()
+    return None
+
+
+def _record_related_pages(root: _Node) -> list[RecordFile]:
+    pages: list[RecordFile] = []
+    container = root.find_first("div", "contpages")
+    if container is None:
+        return pages
+    for link in container.find_all("a"):
+        url = _absolute_url(link.attr("href"))
+        if url is None:
+            continue
+        pages.append(RecordFile(label=_node_text(link), url=url, file_type="html"))
+    return pages
+
+
+def _record_url(root: _Node, fallback_url: str) -> str:
+    item_url = root.find_first("a", "itemurl")
+    text = _node_text(item_url)
+    if text.startswith("URL:"):
+        return text.removeprefix("URL:").strip()
+    href = item_url.attr("href") if item_url else None
+    return _absolute_url(href) or fallback_url
+
+
+def _record_urn(root: _Node, metadata: dict[str, list[str]]) -> str | None:
+    item_urn = root.find_first("a", "itemurn")
+    text = _node_text(item_urn)
+    if text.startswith("URN:"):
+        return text.removeprefix("URN:").strip()
+    for identifier in metadata.get("dc.identifier", []):
+        if identifier.startswith("urn:"):
+            return identifier
+    return None
+
+
+def _record_cover_url(root: _Node, metadata: dict[str, list[str]]) -> str | None:
+    image = root.find_first("img")
+    image_url = _absolute_url(image.attr("src")) if image else None
+    if image_url:
+        return image_url
+    return _first_meta(metadata, "og:image")
+
+
+def _first_meta(metadata: dict[str, list[str]], key: str) -> str:
+    values = metadata.get(key, [])
+    return values[0] if values else ""
+
+
+def _last_meta(metadata: dict[str, list[str]], key: str) -> str | None:
+    values = metadata.get(key, [])
+    return values[-1] if values else None
 
 
 def _old_hit_url(hit: _Node) -> str | None:

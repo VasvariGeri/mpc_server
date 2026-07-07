@@ -4,6 +4,7 @@ from mek_mcp.parsers import (
     parse_advanced_results,
     parse_full_text_results,
     parse_index_browse_results,
+    parse_record,
     parse_simple_results,
 )
 from mek_mcp.schemas import AdvancedField, MekPage
@@ -96,3 +97,31 @@ def test_parse_index_browse_results() -> None:
         "néprajz",
         "néprajzi kutatás",
     ]
+
+
+def test_parse_record_page() -> None:
+    response = parse_record(load_page("record_page.html"))
+
+    assert response.kind == "record"
+    assert response.title == "A kőszívű ember fiai"
+    assert response.authors == ["Jókai Mór"]
+    assert response.mek_id == "05500/05585"
+    assert response.url == "https://mek.oszk.hu/05500/05585"
+    assert response.urn == "http://nbn.urn.hu/N2L?urn:nbn:hu-8131"
+    assert response.description == "Rövid leírás a rekordhoz."
+    assert response.date == "2008-01-15"
+    assert response.topics == [
+        "Szépirodalom, népköltészet",
+        "Klasszikus magyar irodalom",
+    ]
+    assert response.keywords == ["magyar irodalom"]
+    assert response.cover_url == "https://mek.oszk.hu/05500/05585/borito.jpg"
+    assert [(file.label, file.file_type) for file in response.files] == [
+        ("ZIP", "zip"),
+        ("HTML", "htm"),
+    ]
+    assert [page.label for page in response.related_pages] == [
+        "Katalóguscédula",
+        "Fülszöveg",
+    ]
+    assert response.metadata["dc.title"] == ["A kőszívű ember fiai"]

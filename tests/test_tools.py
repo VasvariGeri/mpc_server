@@ -6,6 +6,7 @@ from mek_mcp.schemas import (
     FullTextSearchQuery,
     IndexBrowseQuery,
     MekPage,
+    RecordQuery,
     SimpleSearchQuery,
 )
 from mek_mcp.tools import register_tools
@@ -16,6 +17,7 @@ class FakeMekClient:
     last_full_text_query: FullTextSearchQuery | None = None
     last_advanced_query: AdvancedSearchQuery | None = None
     last_index_query: IndexBrowseQuery | None = None
+    last_record_query: RecordQuery | None = None
 
     def __enter__(self) -> "FakeMekClient":
         return self
@@ -114,6 +116,35 @@ class FakeMekClient:
                   <option value="néprajz">néprajz</option>
                   <option value="néprajzi kutatás">néprajzi kutatás</option>
                 </select>
+              </body>
+            </html>
+            """,
+        )
+
+    def fetch_record(self, query: RecordQuery) -> MekPage:
+        self.last_record_query = query
+        return MekPage(
+            url="https://mek.oszk.hu/05500/05585",
+            status_code=200,
+            html="""
+            <html>
+              <head>
+                <meta name="dc.title" content="A kőszívű ember fiai">
+                <meta name="dc.creator" content="Jókai Mór">
+                <meta name="dc.subject" content="magyar irodalom">
+              </head>
+              <body>
+                <h4 class="author">Jókai Mór</h4>
+                <h3 class="title">A kőszívű ember fiai</h3>
+                <div class="topic">Szépirodalom, népköltészet</div>
+                <div class="keywords"><a>magyar irodalom</a></div>
+                <div class="itemlead">Rövid leírás.</div>
+                <a class="cssfile htm" href="/05500/05585/html/index.htm">
+                  HTML
+                </a>
+                <a class="itemurl" href="https://mek.oszk.hu/05500/05585">
+                  URL: https://mek.oszk.hu/05500/05585
+                </a>
               </body>
             </html>
             """,
@@ -231,6 +262,27 @@ async def test_browse_index_tool_returns_controlled_values() -> None:
 
 
 @pytest.mark.anyio
+async def test_get_record_tool_returns_normalized_record() -> None:
+    server = FastMCP("test")
+    fake_client = FakeMekClient()
+    register_tools(server, client_factory=lambda: fake_client)
+
+    _, structured = await server.call_tool(
+        "mek_get_record",
+        {"identifier": "05500/05585"},
+    )
+
+    assert fake_client.last_record_query is not None
+    assert fake_client.last_record_query.identifier == "05500/05585"
+    assert structured["kind"] == "record"
+    assert structured["title"] == "A kőszívű ember fiai"
+    assert structured["authors"] == ["Jókai Mór"]
+    assert structured["mek_id"] == "05500/05585"
+    assert structured["keywords"] == ["magyar irodalom"]
+    assert structured["files"][0]["file_type"] == "htm"
+
+
+@pytest.mark.anyio
 async def test_registered_server_lists_search_tools() -> None:
     server = FastMCP("test")
     register_tools(server, client_factory=FakeMekClient)
@@ -243,6 +295,7 @@ async def test_registered_server_lists_search_tools() -> None:
         "mek_full_text_search",
         "mek_advanced_search",
         "mek_browse_index",
+        "mek_get_record",
     }
 
     simple_tool = tools_by_name["mek_simple_search"]
@@ -262,3 +315,6 @@ async def test_registered_server_lists_search_tools() -> None:
     browse_tool = tools_by_name["mek_browse_index"]
     assert "field" in browse_tool.inputSchema["properties"]
     assert "prefix" in browse_tool.inputSchema["properties"]
+
+    record_tool = tools_by_name["mek_get_record"]
+    assert "identifier" in record_tool.inputSchema["properties"]

@@ -20,3 +20,4 @@ async def test_create_server_registers_tools() -> None:
     assert "mek_full_text_search" in tool_names
     assert "mek_advanced_search" in tool_names
     assert "mek_browse_index" in tool_names
+    assert "mek_get_record" in tool_names

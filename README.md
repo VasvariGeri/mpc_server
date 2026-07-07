@@ -47,6 +47,7 @@ The project currently contains:
 - `mek_full_text_search`, an MCP tool for MEK's full text search
 - `mek_advanced_search`, an MCP tool for MEK's fielded catalog search
 - `mek_browse_index`, an MCP tool for MEK's controlled index suggestions
+- `mek_get_record`, an MCP tool for normalized MEK record details
 
 ## Tools
 
@@ -132,6 +133,28 @@ Example:
 }
 ```
 
+### `mek_get_record`
+
+Fetches a MEK record page and returns normalized bibliographic details. Use it
+after a search result when the agent needs richer metadata, available formats,
+stable identifiers, or related pages.
+
+Arguments:
+
+- `identifier`: a MEK ID such as `05500/05585`, or a full MEK record URL
+
+Returned data includes title, authors, MEK ID, URL, URN, description, date,
+topics, keywords, available files, related pages, cover URL, and raw page-level
+metadata discovered in `meta` tags.
+
+Example:
+
+```json
+{
+  "identifier": "https://mek.oszk.hu/05500/05585"
+}
+```
+
 ### `mek_full_text_search`
 
 Searches inside MEK document full text. MEK searches HTML and PDF texts,
@@ -150,5 +173,3 @@ Arguments:
   - `kézikönyvek és egyéb műfajok`
 - `limit`: results per page, one of `10`, `50`, or `100`
 - `offset`: pagination offset
-
-Additional MCP search tools will be added incrementally in later commits.

@@ -10,6 +10,7 @@ from mek_mcp.schemas import (
     FullTextBroadTopic,
     FullTextSearchQuery,
     IndexBrowseQuery,
+    RecordQuery,
     SimpleSearchQuery,
 )
 
@@ -120,6 +121,21 @@ def test_fetch_index_browse_posts_expected_params_and_form_fields() -> None:
     assert captured_params["indindex"] == "13"
     assert captured["s1"] == "dc_subject keyword"
     assert captured["m1"] == "nep"
+
+
+def test_fetch_record_accepts_id_or_url() -> None:
+    requested_paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requested_paths.append(request.url.path)
+        return httpx.Response(200, text="<html>ok</html>", request=request)
+
+    client = MekClient(transport=httpx.MockTransport(handler))
+
+    client.fetch_record(RecordQuery(identifier="05500/05585"))
+    client.fetch_record(RecordQuery(identifier="https://mek.oszk.hu/05500/05585"))
+
+    assert requested_paths == ["/05500/05585", "/05500/05585"]
 
 
 def test_decodes_iso_8859_2_html() -> None:

@@ -15,6 +15,7 @@ from .schemas import (
     FullTextSearchQuery,
     IndexBrowseQuery,
     MekPage,
+    RecordQuery,
     SimpleSearchQuery,
 )
 
@@ -138,6 +139,9 @@ class MekClient:
         }
         return self.post("/katalog/browsuj.php3", params=params, data=data)
 
+    def fetch_record(self, query: RecordQuery) -> MekPage:
+        return self.get(_record_path(query.identifier))
+
     def get(self, path: str, *, params: Mapping[str, Any] | None = None) -> MekPage:
         return self._request("GET", path, params=params)
 
@@ -201,3 +205,14 @@ def _advanced_index_params(query: AdvancedSearchQuery) -> dict[str, str]:
         params[f"muv{index}index"] = str(operator_index)
 
     return params
+
+
+def _record_path(identifier: str) -> str:
+    clean_identifier = identifier.strip()
+    if clean_identifier.startswith(MEK_BASE_URL):
+        clean_identifier = clean_identifier.removeprefix(MEK_BASE_URL)
+    if clean_identifier.startswith("http://mek.oszk.hu"):
+        clean_identifier = clean_identifier.removeprefix("http://mek.oszk.hu")
+    if not clean_identifier.startswith("/"):
+        clean_identifier = f"/{clean_identifier}"
+    return clean_identifier
