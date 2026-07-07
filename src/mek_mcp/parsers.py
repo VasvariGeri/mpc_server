@@ -7,7 +7,15 @@ from html.parser import HTMLParser
 from urllib.parse import urljoin
 
 from .client import MEK_BASE_URL
-from .schemas import MekPage, SearchKind, SearchResponse, SearchResult
+from .schemas import (
+    AdvancedField,
+    IndexBrowseResponse,
+    IndexEntry,
+    MekPage,
+    SearchKind,
+    SearchResponse,
+    SearchResult,
+)
 
 MEK_ID_PATTERN = re.compile(r"/(\d{5}/\d{5})(?:[/#?]|$)")
 TOTAL_RESULTS_PATTERN = re.compile(r"(?:A\s+)?találatok száma:?\s*(\d+)", re.I)
@@ -63,6 +71,35 @@ def parse_advanced_results(page: MekPage, *, limit: int = 100) -> SearchResponse
         kind=SearchKind.ADVANCED,
         limit=limit,
         offset=0,
+    )
+
+
+def parse_index_browse_results(
+    page: MekPage,
+    *,
+    field: AdvancedField,
+    prefix: str,
+    limit: int,
+) -> IndexBrowseResponse:
+    root = _parse_html(page.html)
+    entries: list[IndexEntry] = []
+
+    for option in root.find_all("option"):
+        value = _clean_text(option.attr("value") or "")
+        label = _node_text(option)
+        if not value or label == "ÜRES LISTA":
+            continue
+        entries.append(IndexEntry(value=value, label=label or value))
+        if len(entries) >= limit:
+            break
+
+    return IndexBrowseResponse(
+        field=field,
+        prefix=prefix,
+        entries=entries,
+        total_results=_parse_total_results(root.text()),
+        limit=limit,
+        source_url=page.url,
     )
 
 

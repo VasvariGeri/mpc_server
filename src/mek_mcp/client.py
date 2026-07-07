@@ -13,6 +13,7 @@ from .schemas import (
     AdvancedOperator,
     AdvancedSearchQuery,
     FullTextSearchQuery,
+    IndexBrowseQuery,
     MekPage,
     SimpleSearchQuery,
 )
@@ -106,6 +107,36 @@ class MekClient:
             data["subid"] = "on"
 
         return self._request("POST", "/katalog/kataluj.php3", params=params, data=data)
+
+    def fetch_index_browse(self, query: IndexBrowseQuery) -> MekPage:
+        field_index = ADVANCED_FIELD_VALUES.index(query.field)
+        params = {
+            "tablefield": query.field,
+            "par": "0",
+            "indindex": str(field_index),
+            "muv1index": "0",
+            "muv2index": "0",
+            "muv3index": "0",
+            "muv4index": "0",
+        }
+        data = {
+            "szerint": "",
+            "s1": query.field,
+            "s2": "",
+            "s3": "",
+            "s4": "",
+            "s5": "",
+            "m1": query.prefix,
+            "m2": "",
+            "m3": "",
+            "m4": "",
+            "m5": "",
+            "muv1": "",
+            "muv2": "",
+            "muv3": "",
+            "muv4": "",
+        }
+        return self.post("/katalog/browsuj.php3", params=params, data=data)
 
     def get(self, path: str, *, params: Mapping[str, Any] | None = None) -> MekPage:
         return self._request("GET", path, params=params)

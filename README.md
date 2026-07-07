@@ -46,6 +46,7 @@ The project currently contains:
 - `mek_simple_search`, an MCP tool for MEK's simple bibliographic search
 - `mek_full_text_search`, an MCP tool for MEK's full text search
 - `mek_advanced_search`, an MCP tool for MEK's fielded catalog search
+- `mek_browse_index`, an MCP tool for MEK's controlled index suggestions
 
 ## Tools
 
@@ -106,6 +107,28 @@ Example:
     }
   ],
   "accentless": true
+}
+```
+
+### `mek_browse_index`
+
+Browses MEK LISTA/index suggestions for an advanced-search field. Use it when
+the exact controlled form is uncertain, then pass a returned `value` into
+`mek_advanced_search`.
+
+Arguments:
+
+- `field`: one of the same MEK catalog fields accepted by `mek_advanced_search`
+- `prefix`: one or more starting characters to browse from
+- `limit`: maximum number of suggestions to return, from `1` to `200`
+
+Example:
+
+```json
+{
+  "field": "dc_subject keyword",
+  "prefix": "nep",
+  "limit": 20
 }
 ```
 

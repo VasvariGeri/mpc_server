@@ -11,12 +11,14 @@ from .client import MekClient
 from .parsers import (
     parse_advanced_results,
     parse_full_text_results,
+    parse_index_browse_results,
     parse_simple_results,
 )
 from .schemas import (
     AdvancedCondition,
     AdvancedSearchQuery,
     FullTextSearchQuery,
+    IndexBrowseQuery,
     SimpleSearchQuery,
 )
 
@@ -96,6 +98,34 @@ def register_tools(
             page = client.fetch_advanced_search(search_query)
 
         response = parse_advanced_results(page)
+        return response.model_dump(mode="json")
+
+    @server.tool(
+        name="mek_browse_index",
+        description=(
+            "Browse MEK catalog index values for a specific advanced-search "
+            "field. Use this before targeted advanced searches when the exact "
+            "controlled subject, author, language, document type, or other "
+            "catalog value is uncertain."
+        ),
+    )
+    def mek_browse_index(
+        field: str,
+        prefix: str,
+        limit: int = 50,
+    ) -> dict[str, Any]:
+        """Browse MEK's LISTA/index suggestions for an advanced-search field."""
+        query = IndexBrowseQuery(field=field, prefix=prefix, limit=limit)
+
+        with client_factory() as client:
+            page = client.fetch_index_browse(query)
+
+        response = parse_index_browse_results(
+            page,
+            field=query.field,
+            prefix=query.prefix,
+            limit=query.limit,
+        )
         return response.model_dump(mode="json")
 
     @server.tool(

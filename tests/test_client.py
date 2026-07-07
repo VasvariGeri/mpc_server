@@ -9,6 +9,7 @@ from mek_mcp.schemas import (
     AdvancedSearchQuery,
     FullTextBroadTopic,
     FullTextSearchQuery,
+    IndexBrowseQuery,
     SimpleSearchQuery,
 )
 
@@ -97,6 +98,28 @@ def test_fetch_advanced_search_posts_conditions_and_options() -> None:
     assert captured_params["sind1"] == "7"
     assert captured_params["sind2"] == "13"
     assert captured_params["muv1index"] == "1"
+
+
+def test_fetch_index_browse_posts_expected_params_and_form_fields() -> None:
+    captured: dict[str, str] = {}
+    captured_params: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured.update(dict(httpx.QueryParams(request.content.decode())))
+        captured_params.update(dict(request.url.params))
+        return httpx.Response(200, text="<html>ok</html>", request=request)
+
+    client = MekClient(transport=httpx.MockTransport(handler))
+
+    client.fetch_index_browse(
+        IndexBrowseQuery(field=AdvancedField.SUBJECT_KEYWORD, prefix="nep")
+    )
+
+    assert captured_params["tablefield"] == "dc_subject keyword"
+    assert captured_params["par"] == "0"
+    assert captured_params["indindex"] == "13"
+    assert captured["s1"] == "dc_subject keyword"
+    assert captured["m1"] == "nep"
 
 
 def test_decodes_iso_8859_2_html() -> None:

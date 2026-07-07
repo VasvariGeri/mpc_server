@@ -118,6 +118,12 @@ class AdvancedSearchQuery(MekBaseModel):
         return conditions
 
 
+class IndexBrowseQuery(MekBaseModel):
+    field: AdvancedField
+    prefix: str = Field(min_length=1)
+    limit: int = Field(default=50, ge=1, le=200)
+
+
 class SearchResult(MekBaseModel):
     title: str
     authors: list[str] = Field(default_factory=list)
@@ -134,6 +140,21 @@ class SearchResponse(MekBaseModel):
     limit: int
     offset: int
     next_offset: int | None = None
+    source_url: str
+
+
+class IndexEntry(MekBaseModel):
+    value: str
+    label: str
+
+
+class IndexBrowseResponse(MekBaseModel):
+    kind: SearchKind = SearchKind.INDEX
+    field: AdvancedField
+    prefix: str
+    entries: list[IndexEntry] = Field(default_factory=list)
+    total_results: int | None = None
+    limit: int
     source_url: str
 
 

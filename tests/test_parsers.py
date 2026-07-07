@@ -3,9 +3,10 @@ from pathlib import Path
 from mek_mcp.parsers import (
     parse_advanced_results,
     parse_full_text_results,
+    parse_index_browse_results,
     parse_simple_results,
 )
-from mek_mcp.schemas import MekPage
+from mek_mcp.schemas import AdvancedField, MekPage
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
@@ -75,3 +76,23 @@ def test_parse_advanced_results_old_catalog_format() -> None:
     assert response.results[1].title == "Az arany ember"
     assert response.results[1].authors == ["Jókai Mór"]
     assert response.results[1].url == "https://mek.oszk.hu/00700/00798"
+
+
+def test_parse_index_browse_results() -> None:
+    response = parse_index_browse_results(
+        load_page("index_browse_results.html"),
+        field=AdvancedField.SUBJECT_KEYWORD,
+        prefix="nep",
+        limit=3,
+    )
+
+    assert response.kind == "index"
+    assert response.field == "dc_subject keyword"
+    assert response.prefix == "nep"
+    assert response.total_results == 177
+    assert response.limit == 3
+    assert [entry.value for entry in response.entries] == [
+        "magyar néprajz",
+        "néprajz",
+        "néprajzi kutatás",
+    ]
