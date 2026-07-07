@@ -8,8 +8,17 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from .client import MekClient
-from .parsers import parse_full_text_results, parse_simple_results
-from .schemas import FullTextSearchQuery, SimpleSearchQuery
+from .parsers import (
+    parse_advanced_results,
+    parse_full_text_results,
+    parse_simple_results,
+)
+from .schemas import (
+    AdvancedCondition,
+    AdvancedSearchQuery,
+    FullTextSearchQuery,
+    SimpleSearchQuery,
+)
 
 
 def register_tools(
@@ -54,6 +63,39 @@ def register_tools(
             limit=int(query.limit),
             offset=query.offset,
         )
+        return response.model_dump(mode="json")
+
+    @server.tool(
+        name="mek_advanced_search",
+        description=(
+            "Search MEK bibliographic records with up to five fielded catalog "
+            "conditions joined by AND, OR, or NOT. Use this when a query needs "
+            "specific roles such as creator, contributor, controlled subject, "
+            "geographic subject, document type, format, or language. Conditions "
+            "must contain field, value, and optionally operator_after."
+        ),
+    )
+    def mek_advanced_search(
+        conditions: list[dict[str, str]],
+        sort: str = "szerzosz",
+        accentless: bool = False,
+        include_in_progress: bool = False,
+    ) -> dict[str, Any]:
+        """Run MEK's advanced bibliographic catalog search."""
+        search_query = AdvancedSearchQuery(
+            conditions=[
+                AdvancedCondition.model_validate(condition)
+                for condition in conditions
+            ],
+            sort=sort,
+            accentless=accentless,
+            include_in_progress=include_in_progress,
+        )
+
+        with client_factory() as client:
+            page = client.fetch_advanced_search(search_query)
+
+        response = parse_advanced_results(page)
         return response.model_dump(mode="json")
 
     @server.tool(

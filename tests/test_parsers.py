@@ -1,6 +1,10 @@
 from pathlib import Path
 
-from mek_mcp.parsers import parse_full_text_results, parse_simple_results
+from mek_mcp.parsers import (
+    parse_advanced_results,
+    parse_full_text_results,
+    parse_simple_results,
+)
 from mek_mcp.schemas import MekPage
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures"
@@ -56,3 +60,18 @@ def test_parse_no_results_page() -> None:
     assert response.total_results == 0
     assert response.next_offset is None
     assert response.results == []
+
+
+def test_parse_advanced_results_old_catalog_format() -> None:
+    response = parse_advanced_results(load_page("advanced_results.html"))
+
+    assert response.kind == "advanced"
+    assert response.total_results == 165
+    assert response.next_offset == 100
+    assert len(response.results) == 2
+    assert response.results[0].title == "II. Endre Aranybullája"
+    assert response.results[0].url == "https://mek.oszk.hu/05900/05919"
+    assert response.results[0].mek_id == "05900/05919"
+    assert response.results[1].title == "Az arany ember"
+    assert response.results[1].authors == ["Jókai Mór"]
+    assert response.results[1].url == "https://mek.oszk.hu/00700/00798"

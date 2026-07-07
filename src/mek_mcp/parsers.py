@@ -10,8 +10,12 @@ from .client import MEK_BASE_URL
 from .schemas import MekPage, SearchKind, SearchResponse, SearchResult
 
 MEK_ID_PATTERN = re.compile(r"/(\d{5}/\d{5})(?:[/#?]|$)")
-TOTAL_RESULTS_PATTERN = re.compile(r"Találatok száma:?\s*(\d+)")
+TOTAL_RESULTS_PATTERN = re.compile(r"(?:A\s+)?találatok száma:?\s*(\d+)", re.I)
 NEXT_OFFSET_PATTERN = re.compile(r"pageNextPrev\('(\d+)'")
+OLD_NEXT_OFFSET_PATTERN = re.compile(
+    r"name=[\"']offset[\"']\s+value=[\"'](\d+)[\"']",
+    re.I,
+)
 WHITESPACE_PATTERN = re.compile(r"\s+")
 VOID_TAGS = {
     "area",
@@ -53,6 +57,15 @@ def parse_full_text_results(
     )
 
 
+def parse_advanced_results(page: MekPage, *, limit: int = 100) -> SearchResponse:
+    return _parse_search_results(
+        page,
+        kind=SearchKind.ADVANCED,
+        limit=limit,
+        offset=0,
+    )
+
+
 def _parse_search_results(
     page: MekPage,
     *,
@@ -75,7 +88,7 @@ def _parse_search_results(
 def _parse_hit(hit: _Node) -> SearchResult:
     item = hit.find_first("a", "etitem")
     if item is None:
-        return SearchResult(title=_clean_text(hit.text()))
+        return _parse_old_hit(hit)
 
     title = _node_text(item.find_first("div", "dctitle"))
     authors = _split_authors(_node_text(item.find_first("div", "dcauthor")))
@@ -94,6 +107,69 @@ def _parse_hit(hit: _Node) -> SearchResult:
     )
 
 
+def _parse_old_hit(hit: _Node) -> SearchResult:
+    url = _old_hit_url(hit)
+    raw_title = _node_text(hit.find_first("b")) or _old_hit_title_from_link(hit)
+    title, authors = _split_old_title_and_authors(raw_title)
+    snippet = _old_hit_subtitle(hit, raw_title)
+
+    return SearchResult(
+        title=title or _clean_text(hit.text()),
+        authors=authors,
+        url=url,
+        mek_id=_parse_mek_id(url),
+        snippet=snippet,
+    )
+
+
+def _old_hit_url(hit: _Node) -> str | None:
+    for link in hit.find_all("a"):
+        href = link.attr("href") or ""
+        text = _node_text(link)
+        if href.startswith(("http://", "https://")):
+            return _absolute_url(href)
+        if text.startswith(("http://", "https://")):
+            return _absolute_url(text)
+
+    form = hit.find_first("form")
+    action = form.attr("action") if form else None
+    if action:
+        return _absolute_url(action.replace("/index.phtml", ""))
+    return None
+
+
+def _old_hit_title_from_link(hit: _Node) -> str:
+    for link in hit.find_all("a"):
+        href = link.attr("href") or ""
+        if href.lower().startswith("javascript:"):
+            return _node_text(link)
+    return ""
+
+
+def _old_hit_subtitle(hit: _Node, raw_title: str) -> str | None:
+    for link in hit.find_all("a"):
+        href = link.attr("href") or ""
+        if href.lower().startswith("javascript:"):
+            text = _node_text(link)
+            subtitle = text.replace(raw_title, "", 1).strip()
+            return subtitle or None
+    return None
+
+
+def _split_old_title_and_authors(raw_title: str) -> tuple[str, list[str]]:
+    normalized = raw_title.replace("\xa0", " ").strip()
+    if ": " not in normalized:
+        return normalized, []
+
+    author_text, title = normalized.split(": ", 1)
+    authors = [
+        author.strip()
+        for author in re.split(r"\s*(?:;|-)\s*", author_text)
+        if author.strip()
+    ]
+    return title.strip(), authors
+
+
 def _parse_total_results(text: str) -> int | None:
     match = TOTAL_RESULTS_PATTERN.search(text)
     if match is None:
@@ -102,7 +178,7 @@ def _parse_total_results(text: str) -> int | None:
 
 
 def _parse_next_offset(html: str) -> int | None:
-    match = NEXT_OFFSET_PATTERN.search(html)
+    match = NEXT_OFFSET_PATTERN.search(html) or OLD_NEXT_OFFSET_PATTERN.search(html)
     if match is None:
         return None
     return int(match.group(1))

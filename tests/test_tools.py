@@ -1,13 +1,19 @@
 import pytest
 from mcp.server.fastmcp import FastMCP
 
-from mek_mcp.schemas import FullTextSearchQuery, MekPage, SimpleSearchQuery
+from mek_mcp.schemas import (
+    AdvancedSearchQuery,
+    FullTextSearchQuery,
+    MekPage,
+    SimpleSearchQuery,
+)
 from mek_mcp.tools import register_tools
 
 
 class FakeMekClient:
     last_query: SimpleSearchQuery | None = None
     last_full_text_query: FullTextSearchQuery | None = None
+    last_advanced_query: AdvancedSearchQuery | None = None
 
     def __enter__(self) -> "FakeMekClient":
         return self
@@ -55,6 +61,35 @@ class FakeMekClient:
                   <a class="mekfound" href="/05500/05585/html/hit.html">
                     Találat helye
                   </a>
+                </div>
+              </body>
+            </html>
+            """,
+        )
+
+    def fetch_advanced_search(self, query: AdvancedSearchQuery) -> MekPage:
+        self.last_advanced_query = query
+        return MekPage(
+            url="https://mek.oszk.hu/katalog/kataluj.php3",
+            status_code=200,
+            html="""
+            <html>
+              <body>
+                <div class="numberofhits">A találatok száma: 165</div>
+                <div class="hit">
+                  <form action="/00700/00798/index.phtml">
+                    <b>
+                      <a href="Javascript:document.fn00095.submit();">
+                        Jókai Mór:&nbsp;Az arany ember
+                      </a>
+                    </b>
+                    <br>
+                    <span class="allis">
+                      <a href="Javascript:document.fn00095.submit();">
+                        https://mek.oszk.hu/00700/00798
+                      </a>
+                    </span>
+                  </form>
                 </div>
               </body>
             </html>
@@ -113,21 +148,63 @@ async def test_full_text_search_tool_returns_snippets() -> None:
 
 
 @pytest.mark.anyio
+async def test_advanced_search_tool_returns_old_catalog_results() -> None:
+    server = FastMCP("test")
+    fake_client = FakeMekClient()
+    register_tools(server, client_factory=lambda: fake_client)
+
+    _, structured = await server.call_tool(
+        "mek_advanced_search",
+        {
+            "conditions": [
+                {
+                    "field": "dc_creator_o FamilyGivenName",
+                    "value": "Jókai",
+                    "operator_after": "and",
+                },
+                {
+                    "field": "dc_title main",
+                    "value": "arany*",
+                },
+            ],
+            "accentless": True,
+        },
+    )
+
+    assert fake_client.last_advanced_query is not None
+    assert len(fake_client.last_advanced_query.conditions) == 2
+    assert fake_client.last_advanced_query.accentless is True
+    assert structured["kind"] == "advanced"
+    assert structured["total_results"] == 165
+    assert structured["results"][0]["title"] == "Az arany ember"
+    assert structured["results"][0]["authors"] == ["Jókai Mór"]
+    assert structured["results"][0]["url"] == "https://mek.oszk.hu/00700/00798"
+
+
+@pytest.mark.anyio
 async def test_registered_server_lists_search_tools() -> None:
     server = FastMCP("test")
     register_tools(server, client_factory=FakeMekClient)
 
     tools = await server.list_tools()
-    tool_names = [tool.name for tool in tools]
+    tools_by_name = {tool.name: tool for tool in tools}
 
-    assert tool_names == ["mek_simple_search", "mek_full_text_search"]
+    assert set(tools_by_name) == {
+        "mek_simple_search",
+        "mek_full_text_search",
+        "mek_advanced_search",
+    }
 
-    simple_tool = tools[0]
+    simple_tool = tools_by_name["mek_simple_search"]
     assert "title" in simple_tool.inputSchema["properties"]
     assert "subject" in simple_tool.inputSchema["properties"]
     assert "creator" in simple_tool.inputSchema["properties"]
     assert "mek_id" in simple_tool.inputSchema["properties"]
 
-    full_text_tool = tools[1]
+    full_text_tool = tools_by_name["mek_full_text_search"]
     assert "query" in full_text_tool.inputSchema["properties"]
     assert "broadtopic" in full_text_tool.inputSchema["properties"]
+
+    advanced_tool = tools_by_name["mek_advanced_search"]
+    assert "conditions" in advanced_tool.inputSchema["properties"]
+    assert "sort" in advanced_tool.inputSchema["properties"]
