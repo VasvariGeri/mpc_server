@@ -133,6 +133,7 @@ class SearchResponse(MekBaseModel):
     total_results: int | None = None
     limit: int
     offset: int
+    next_offset: int | None = None
     source_url: str
 
 

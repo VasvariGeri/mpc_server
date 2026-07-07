@@ -30,6 +30,6 @@ The project currently contains:
 - a minimal MCP server entry point
 - typed request/response schemas for MEK searches
 - an HTTP client for MEK simple, advanced, and full text search endpoints
+- offline-tested HTML parsers for MEK search result pages
 
-MCP search tools and HTML result parsing will be added incrementally in later
-commits.
+MCP search tools will be added incrementally in later commits.
