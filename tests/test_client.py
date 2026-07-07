@@ -138,6 +138,14 @@ def test_fetch_record_accepts_id_or_url() -> None:
     assert requested_paths == ["/05500/05585", "/05500/05585"]
 
 
+def test_fetch_record_rejects_non_mek_urls() -> None:
+    transport = httpx.MockTransport(lambda request: httpx.Response(200))
+    client = MekClient(transport=transport)
+
+    with pytest.raises(MekClientError, match="MEK ID or MEK URL"):
+        client.fetch_record(RecordQuery(identifier="https://example.com/05500/05585"))
+
+
 def test_decodes_iso_8859_2_html() -> None:
     body = (
         '<html><head><meta charset="iso-8859-2"></head>'

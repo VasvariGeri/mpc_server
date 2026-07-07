@@ -1,6 +1,7 @@
 import pytest
 from mcp.server.fastmcp import FastMCP
 
+from mek_mcp.client import MekClientError
 from mek_mcp.schemas import (
     AdvancedSearchQuery,
     FullTextSearchQuery,
@@ -151,6 +152,11 @@ class FakeMekClient:
         )
 
 
+class FailingMekClient(FakeMekClient):
+    def fetch_simple_search(self, query: SimpleSearchQuery) -> MekPage:
+        raise MekClientError("MEK request failed: 503 Service Unavailable")
+
+
 @pytest.mark.anyio
 async def test_simple_search_tool_returns_parsed_results() -> None:
     server = FastMCP("test")
@@ -280,6 +286,30 @@ async def test_get_record_tool_returns_normalized_record() -> None:
     assert structured["mek_id"] == "05500/05585"
     assert structured["keywords"] == ["magyar irodalom"]
     assert structured["files"][0]["file_type"] == "htm"
+
+
+@pytest.mark.anyio
+async def test_tool_validation_errors_are_structured() -> None:
+    server = FastMCP("test")
+    register_tools(server, client_factory=FakeMekClient)
+
+    _, structured = await server.call_tool("mek_simple_search", {})
+
+    assert structured["error"]["type"] == "validation_error"
+    assert structured["error"]["retryable"] is False
+    assert "At least one simple search field" in structured["error"]["message"]
+
+
+@pytest.mark.anyio
+async def test_tool_client_errors_are_structured_and_retryable() -> None:
+    server = FastMCP("test")
+    register_tools(server, client_factory=FailingMekClient)
+
+    _, structured = await server.call_tool("mek_simple_search", {"title": "Duna"})
+
+    assert structured["error"]["type"] == "mek_request_error"
+    assert structured["error"]["retryable"] is True
+    assert "503 Service Unavailable" in structured["error"]["message"]
 
 
 @pytest.mark.anyio

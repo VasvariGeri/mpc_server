@@ -17,6 +17,13 @@ Run the smoke test suite:
 python3 -m pytest
 ```
 
+Live MEK integration tests are skipped by default. Run them explicitly with
+network access:
+
+```bash
+MEK_LIVE_TESTS=1 python3 -m pytest tests/test_live_mek.py
+```
+
 Start the MCP server over stdio:
 
 ```bash
@@ -31,6 +38,18 @@ Example MCP server configuration:
     "mek": {
       "command": "mek-mcp"
     }
+  }
+}
+```
+
+Tool errors are returned as structured payloads instead of raw tracebacks:
+
+```json
+{
+  "error": {
+    "type": "validation_error",
+    "message": "...",
+    "retryable": false
   }
 }
 ```

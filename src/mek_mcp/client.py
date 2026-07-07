@@ -211,8 +211,10 @@ def _record_path(identifier: str) -> str:
     clean_identifier = identifier.strip()
     if clean_identifier.startswith(MEK_BASE_URL):
         clean_identifier = clean_identifier.removeprefix(MEK_BASE_URL)
-    if clean_identifier.startswith("http://mek.oszk.hu"):
+    elif clean_identifier.startswith("http://mek.oszk.hu"):
         clean_identifier = clean_identifier.removeprefix("http://mek.oszk.hu")
+    elif clean_identifier.startswith(("http://", "https://")):
+        raise MekClientError("Record identifier must be a MEK ID or MEK URL.")
     if not clean_identifier.startswith("/"):
         clean_identifier = f"/{clean_identifier}"
     return clean_identifier
