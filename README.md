@@ -49,6 +49,9 @@ The project currently contains:
 - `mek_browse_index`, an MCP tool for MEK's controlled index suggestions
 - `mek_get_record`, an MCP tool for normalized MEK record details
 
+See [Agent Workflows](docs/agent-workflows.md) for example multi-tool search
+strategies and prompt-oriented usage patterns.
+
 ## Tools
 
 ### `mek_simple_search`
