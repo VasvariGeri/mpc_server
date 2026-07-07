@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from types import TracebackType
 from typing import Any
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -25,6 +27,8 @@ DEFAULT_USER_AGENT = "mek-mcp/0.1.0 (+https://mek.oszk.hu/)"
 ADVANCED_FIELD_VALUES = tuple(field.value for field in AdvancedField)
 ADVANCED_OPERATOR_VALUES = tuple(operator.value for operator in AdvancedOperator)
 DEFAULT_ADVANCED_FIELD_INDEXES = (0, 7, 16, 13, 18)
+RECORD_ID_PATTERN = re.compile(r"^/?(\d{5}/\d{5})/?$")
+RECORD_URL_PATH_PATTERN = re.compile(r"^/(\d{5}/\d{5})(?:/|$)")
 
 
 class MekClientError(RuntimeError):
@@ -214,12 +218,14 @@ def _advanced_index_params(query: AdvancedSearchQuery) -> dict[str, str]:
 
 def _record_path(identifier: str) -> str:
     clean_identifier = identifier.strip()
-    if clean_identifier.startswith(MEK_BASE_URL):
-        clean_identifier = clean_identifier.removeprefix(MEK_BASE_URL)
-    elif clean_identifier.startswith("http://mek.oszk.hu"):
-        clean_identifier = clean_identifier.removeprefix("http://mek.oszk.hu")
-    elif clean_identifier.startswith(("http://", "https://")):
+    if clean_identifier.startswith(("http://", "https://")):
+        parsed = urlsplit(clean_identifier)
+        if parsed.hostname != "mek.oszk.hu":
+            raise MekClientError("Record identifier must be a MEK ID or MEK URL.")
+        match = RECORD_URL_PATH_PATTERN.match(parsed.path)
+    else:
+        match = RECORD_ID_PATTERN.match(clean_identifier)
+
+    if match is None:
         raise MekClientError("Record identifier must be a MEK ID or MEK URL.")
-    if not clean_identifier.startswith("/"):
-        clean_identifier = f"/{clean_identifier}"
-    return clean_identifier
+    return f"/{match.group(1)}"

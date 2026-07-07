@@ -139,8 +139,9 @@ def test_fetch_record_accepts_id_or_url() -> None:
 
     client.fetch_record(RecordQuery(identifier="05500/05585"))
     client.fetch_record(RecordQuery(identifier="https://mek.oszk.hu/05500/05585"))
+    client.fetch_record(RecordQuery(identifier="http://mek.oszk.hu/05500/05585/"))
 
-    assert requested_paths == ["/05500/05585", "/05500/05585"]
+    assert requested_paths == ["/05500/05585", "/05500/05585", "/05500/05585"]
 
 
 def test_fetch_record_rejects_non_mek_urls() -> None:
@@ -149,6 +150,14 @@ def test_fetch_record_rejects_non_mek_urls() -> None:
 
     with pytest.raises(MekClientError, match="MEK ID or MEK URL"):
         client.fetch_record(RecordQuery(identifier="https://example.com/05500/05585"))
+
+
+def test_fetch_record_rejects_non_record_mek_urls() -> None:
+    transport = httpx.MockTransport(lambda request: httpx.Response(200))
+    client = MekClient(transport=transport)
+
+    with pytest.raises(MekClientError, match="MEK ID or MEK URL"):
+        client.fetch_record(RecordQuery(identifier="https://mek.oszk.hu/hu/search/elfull/"))
 
 
 def test_decodes_iso_8859_2_html() -> None:

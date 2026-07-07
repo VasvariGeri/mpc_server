@@ -297,11 +297,12 @@ def _record_urn(root: _Node, metadata: dict[str, list[str]]) -> str | None:
 
 
 def _record_cover_url(root: _Node, metadata: dict[str, list[str]]) -> str | None:
-    image = root.find_first("img")
+    cover_container = root.find_first(class_name="ipic")
+    image = cover_container.find_first("img") if cover_container else None
     image_url = _absolute_url(image.attr("src")) if image else None
     if image_url:
         return image_url
-    return _first_meta(metadata, "og:image")
+    return _first_meta(metadata, "og:image") or None
 
 
 def _first_meta(metadata: dict[str, list[str]], key: str) -> str:
@@ -356,7 +357,7 @@ def _split_old_title_and_authors(raw_title: str) -> tuple[str, list[str]]:
     author_text, title = normalized.split(": ", 1)
     authors = [
         author.strip()
-        for author in re.split(r"\s*(?:;|-)\s*", author_text)
+        for author in re.split(r"\s*;\s*|\s+-\s+", author_text)
         if author.strip()
     ]
     return title.strip(), authors

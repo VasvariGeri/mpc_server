@@ -80,6 +80,30 @@ def test_parse_advanced_results_old_catalog_format() -> None:
     assert response.results[1].url == "https://mek.oszk.hu/00700/00798"
 
 
+def test_parse_old_catalog_authors_keeps_hyphenated_names() -> None:
+    page = MekPage(
+        url="https://mek.oszk.hu/katalog/kataluj.php3",
+        status_code=200,
+        html="""
+            <html><body>
+              <div class="hit">
+                <b>Szalay-Bobrovniczky Vince - Kovács Pál; Nagy Anna: Példa cím</b>
+                <form action="/12300/12345/index.phtml"></form>
+              </div>
+            </body></html>
+        """,
+    )
+
+    response = parse_advanced_results(page)
+
+    assert response.results[0].title == "Példa cím"
+    assert response.results[0].authors == [
+        "Szalay-Bobrovniczky Vince",
+        "Kovács Pál",
+        "Nagy Anna",
+    ]
+
+
 def test_parse_index_browse_results() -> None:
     response = parse_index_browse_results(
         load_page("index_browse_results.html"),
@@ -126,3 +150,48 @@ def test_parse_record_page() -> None:
         "Fülszöveg",
     ]
     assert response.metadata["dc.title"] == ["A kőszívű ember fiai"]
+
+
+def test_parse_record_cover_prefers_record_image_container() -> None:
+    page = MekPage(
+        url="https://mek.oszk.hu/05500/05585",
+        status_code=200,
+        html="""
+            <html>
+              <head>
+                <meta property="og:image" content="https://mek.oszk.hu/05500/05585/meta.jpg">
+              </head>
+              <body>
+                <img src="/logo.png">
+                <div class="ipic"><img src="/05500/05585/borito.jpg"></div>
+                <a class="itemurl">URL: https://mek.oszk.hu/05500/05585</a>
+              </body>
+            </html>
+        """,
+    )
+
+    response = parse_record(page)
+
+    assert response.cover_url == "https://mek.oszk.hu/05500/05585/borito.jpg"
+
+
+def test_parse_record_cover_falls_back_to_meta_image() -> None:
+    page = MekPage(
+        url="https://mek.oszk.hu/05500/05585",
+        status_code=200,
+        html="""
+            <html>
+              <head>
+                <meta property="og:image" content="https://mek.oszk.hu/05500/05585/meta.jpg">
+              </head>
+              <body>
+                <img src="/logo.png">
+                <a class="itemurl">URL: https://mek.oszk.hu/05500/05585</a>
+              </body>
+            </html>
+        """,
+    )
+
+    response = parse_record(page)
+
+    assert response.cover_url == "https://mek.oszk.hu/05500/05585/meta.jpg"
