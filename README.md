@@ -23,4 +23,13 @@ Start the MCP server over stdio:
 mek-mcp
 ```
 
-Search tools will be added incrementally in later commits.
+## Current scope
+
+The project currently contains:
+
+- a minimal MCP server entry point
+- typed request/response schemas for MEK searches
+- an HTTP client for MEK simple, advanced, and full text search endpoints
+
+MCP search tools and HTML result parsing will be added incrementally in later
+commits.
