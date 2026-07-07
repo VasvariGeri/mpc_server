@@ -86,6 +86,8 @@ def test_fetch_advanced_search_posts_conditions_and_options() -> None:
             ],
             accentless=True,
             include_in_progress=True,
+            offset=100,
+            page_state="5919:13081:8173",
         )
     )
 
@@ -96,6 +98,9 @@ def test_fetch_advanced_search_posts_conditions_and_options() -> None:
     assert captured["m2"] == "Petőfi"
     assert captured["ekezet"] == "ektelen"
     assert captured["subid"] == "on"
+    assert captured["offset"] == "100"
+    assert captured["mod"] == "keres"
+    assert captured["indextomb"] == "5919:13081:8173"
     assert captured_params["sind1"] == "7"
     assert captured_params["sind2"] == "13"
     assert captured_params["muv1index"] == "1"

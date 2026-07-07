@@ -99,6 +99,9 @@ Arguments:
 - `sort`: one of `szerzosz`, `cimsz`, `idorend`, or `idsz`
 - `accentless`: set to `true` to use MEK's accentless search option
 - `include_in_progress`: include documents still under processing
+- `offset`: pagination offset; use `next_offset` from the previous response
+- `page_state`: pagination state; use `next_page_state` from the previous
+  response when requesting later advanced-search pages
 
 Each condition has:
 

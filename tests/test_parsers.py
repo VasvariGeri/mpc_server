@@ -70,6 +70,7 @@ def test_parse_advanced_results_old_catalog_format() -> None:
     assert response.kind == "advanced"
     assert response.total_results == 165
     assert response.next_offset == 100
+    assert response.next_page_state == "5919:13081:8173"
     assert len(response.results) == 2
     assert response.results[0].title == "II. Endre Aranybullája"
     assert response.results[0].url == "https://mek.oszk.hu/05900/05919"

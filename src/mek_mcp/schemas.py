@@ -107,6 +107,14 @@ class AdvancedSearchQuery(MekBaseModel):
     sort: AdvancedSort = AdvancedSort.CREATOR
     accentless: bool = False
     include_in_progress: bool = False
+    offset: int = Field(default=0, ge=0)
+    page_state: str | None = Field(
+        default=None,
+        description=(
+            "Opaque pagination state returned by previous advanced search "
+            "responses. Required by MEK for reliable paging beyond the first page."
+        ),
+    )
 
     @field_validator("conditions")
     @classmethod
@@ -147,6 +155,7 @@ class SearchResponse(MekBaseModel):
     limit: int
     offset: int
     next_offset: int | None = None
+    next_page_state: str | None = None
     source_url: str
 
 

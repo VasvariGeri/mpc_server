@@ -106,6 +106,11 @@ class MekClient:
             data["ekezet"] = "ektelen"
         if query.include_in_progress:
             data["subid"] = "on"
+        if query.offset:
+            data["offset"] = str(query.offset)
+            data["mod"] = "keres"
+        if query.page_state:
+            data["indextomb"] = query.page_state
 
         return self._request("POST", "/katalog/kataluj.php3", params=params, data=data)
 

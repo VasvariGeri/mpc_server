@@ -78,6 +78,8 @@ def register_tools(
         sort: str = "szerzosz",
         accentless: bool = False,
         include_in_progress: bool = False,
+        offset: int = 0,
+        page_state: str | None = None,
     ) -> dict[str, Any]:
         """Run MEK's advanced bibliographic catalog search."""
         return _handle_tool_errors(
@@ -87,6 +89,8 @@ def register_tools(
                 sort=sort,
                 accentless=accentless,
                 include_in_progress=include_in_progress,
+                offset=offset,
+                page_state=page_state,
             )
         )
 
@@ -192,6 +196,8 @@ def _advanced_search(
     sort: str,
     accentless: bool,
     include_in_progress: bool,
+    offset: int,
+    page_state: str | None,
 ) -> dict[str, Any]:
     query = AdvancedSearchQuery(
         conditions=[
@@ -201,12 +207,14 @@ def _advanced_search(
         sort=sort,
         accentless=accentless,
         include_in_progress=include_in_progress,
+        offset=offset,
+        page_state=page_state,
     )
 
     with client_factory() as client:
         page = client.fetch_advanced_search(query)
 
-    response = parse_advanced_results(page)
+    response = parse_advanced_results(page, offset=query.offset)
     return response.model_dump(mode="json")
 
 

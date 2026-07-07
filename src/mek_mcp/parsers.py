@@ -26,6 +26,10 @@ OLD_NEXT_OFFSET_PATTERN = re.compile(
     r"name=[\"']offset[\"']\s+value=[\"'](\d+)[\"']",
     re.I,
 )
+PAGE_STATE_PATTERN = re.compile(
+    r"name=[\"']indextomb[\"']\s+value=[\"']([^\"']+)[\"']",
+    re.I,
+)
 WHITESPACE_PATTERN = re.compile(r"\s+")
 VOID_TAGS = {
     "area",
@@ -67,12 +71,14 @@ def parse_full_text_results(
     )
 
 
-def parse_advanced_results(page: MekPage, *, limit: int = 100) -> SearchResponse:
+def parse_advanced_results(
+    page: MekPage, *, limit: int = 100, offset: int = 0
+) -> SearchResponse:
     return _parse_search_results(
         page,
         kind=SearchKind.ADVANCED,
         limit=limit,
-        offset=0,
+        offset=offset,
     )
 
 
@@ -148,6 +154,7 @@ def _parse_search_results(
         limit=limit,
         offset=offset,
         next_offset=_parse_next_offset(page.html),
+        next_page_state=_parse_next_page_state(page.html),
         source_url=page.url,
     )
 
@@ -367,6 +374,13 @@ def _parse_next_offset(html: str) -> int | None:
     if match is None:
         return None
     return int(match.group(1))
+
+
+def _parse_next_page_state(html: str) -> str | None:
+    match = PAGE_STATE_PATTERN.search(html)
+    if match is None:
+        return None
+    return match.group(1)
 
 
 def _parse_mek_id(url: str | None) -> str | None:

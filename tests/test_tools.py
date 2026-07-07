@@ -228,13 +228,18 @@ async def test_advanced_search_tool_returns_old_catalog_results() -> None:
                 },
             ],
             "accentless": True,
+            "offset": 100,
+            "page_state": "5919:13081:8173",
         },
     )
 
     assert fake_client.last_advanced_query is not None
     assert len(fake_client.last_advanced_query.conditions) == 2
     assert fake_client.last_advanced_query.accentless is True
+    assert fake_client.last_advanced_query.offset == 100
+    assert fake_client.last_advanced_query.page_state == "5919:13081:8173"
     assert structured["kind"] == "advanced"
+    assert structured["offset"] == 100
     assert structured["total_results"] == 165
     assert structured["results"][0]["title"] == "Az arany ember"
     assert structured["results"][0]["authors"] == ["Jókai Mór"]
@@ -341,6 +346,8 @@ async def test_registered_server_lists_search_tools() -> None:
     advanced_tool = tools_by_name["mek_advanced_search"]
     assert "conditions" in advanced_tool.inputSchema["properties"]
     assert "sort" in advanced_tool.inputSchema["properties"]
+    assert "offset" in advanced_tool.inputSchema["properties"]
+    assert "page_state" in advanced_tool.inputSchema["properties"]
 
     browse_tool = tools_by_name["mek_browse_index"]
     assert "field" in browse_tool.inputSchema["properties"]
