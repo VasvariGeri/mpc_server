@@ -14,5 +14,7 @@ async def test_create_server_registers_tools() -> None:
     server = create_server()
 
     tools = await server.list_tools()
+    tool_names = {tool.name for tool in tools}
 
-    assert "mek_simple_search" in {tool.name for tool in tools}
+    assert "mek_simple_search" in tool_names
+    assert "mek_full_text_search" in tool_names

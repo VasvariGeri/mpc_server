@@ -8,8 +8,8 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from .client import MekClient
-from .parsers import parse_simple_results
-from .schemas import SimpleSearchQuery
+from .parsers import parse_full_text_results, parse_simple_results
+from .schemas import FullTextSearchQuery, SimpleSearchQuery
 
 
 def register_tools(
@@ -53,5 +53,38 @@ def register_tools(
             page,
             limit=int(query.limit),
             offset=query.offset,
+        )
+        return response.model_dump(mode="json")
+
+    @server.tool(
+        name="mek_full_text_search",
+        description=(
+            "Search inside MEK document full text. MEK searches HTML and PDF "
+            "texts, stems Hungarian inflected forms automatically, and ignores "
+            "very common stop words. Results include snippets and direct hit "
+            "locations when MEK provides them."
+        ),
+    )
+    def mek_full_text_search(
+        query: str,
+        broadtopic: str = "",
+        limit: int = 10,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """Run MEK's full text search."""
+        search_query = FullTextSearchQuery(
+            query=query,
+            broadtopic=broadtopic,
+            limit=limit,
+            offset=offset,
+        )
+
+        with client_factory() as client:
+            page = client.fetch_full_text_search(search_query)
+
+        response = parse_full_text_results(
+            page,
+            limit=int(search_query.limit),
+            offset=search_query.offset,
         )
         return response.model_dump(mode="json")

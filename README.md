@@ -44,6 +44,7 @@ The project currently contains:
 - an HTTP client for MEK simple, advanced, and full text search endpoints
 - offline-tested HTML parsers for MEK search result pages
 - `mek_simple_search`, an MCP tool for MEK's simple bibliographic search
+- `mek_full_text_search`, an MCP tool for MEK's full text search
 
 ## Tools
 
@@ -58,6 +59,25 @@ Arguments:
 - `subject`: subject, subtopic, keyword, or type words
 - `creator`: author, editor, or translator name
 - `mek_id`: MEK document identifier
+- `limit`: results per page, one of `10`, `50`, or `100`
+- `offset`: pagination offset
+
+### `mek_full_text_search`
+
+Searches inside MEK document full text. MEK searches HTML and PDF texts,
+automatically stems Hungarian inflected forms, and returns snippets plus direct
+hit locations when available.
+
+Arguments:
+
+- `query`: full text search query
+- `broadtopic`: optional collection filter; use one of:
+  - empty string for the full collection
+  - `természettudományok és matematika`
+  - `műszaki tudományok, gazdasági ágazatok`
+  - `társadalomtudományok`
+  - `humán területek, kultúra, irodalom`
+  - `kézikönyvek és egyéb műfajok`
 - `limit`: results per page, one of `10`, `50`, or `100`
 - `offset`: pagination offset
 
