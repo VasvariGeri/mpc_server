@@ -4,16 +4,20 @@ from __future__ import annotations
 
 from mcp.server.fastmcp import FastMCP
 
+from .tools import register_tools
+
 SERVER_NAME = "mek-mcp"
 
 
 def create_server() -> FastMCP:
     """Create the MEK MCP server instance.
 
-    Search tools are added in later commits. Keeping construction in a separate
-    function makes smoke tests and future integration tests straightforward.
+    Keeping construction in a separate function makes smoke tests and future
+    integration tests straightforward.
     """
-    return FastMCP(SERVER_NAME)
+    server = FastMCP(SERVER_NAME)
+    register_tools(server)
+    return server
 
 
 def main() -> None:
