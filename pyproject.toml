@@ -26,6 +26,7 @@ dev = [
 
 [project.scripts]
 mek-mcp = "mek_mcp.server:main"
+mek-mcp-http = "mek_mcp.server:main_http"
 
 [tool.setuptools.packages.find]
 where = ["src"]
